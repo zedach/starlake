@@ -74,7 +74,7 @@ class BigQuerySparkJobSpec extends TestHelper with BeforeAndAfterAll {
               |""".stripMargin
           private val businessTaskAddPart = AutoTaskDesc(
             "addPartitionsWithOverwrite",
-            Some(query),
+            None,
             None,
             "SL_BQ_TEST_DS",
             "SL_BQ_TEST_TABLE_DYNAMIC",
@@ -95,8 +95,13 @@ class BigQuerySparkJobSpec extends TestHelper with BeforeAndAfterAll {
             new Path(
               starlakeMetadataPath + "/transform/SL_BQ_TEST_DS/addPartitionsWithOverwrite.comet.yml"
             )
+          val pathTaskSQL =
+            new Path(
+              starlakeMetadataPath + "/transform/SL_BQ_TEST_DS/addPartitionsWithOverwrite.sql.j2"
+            )
           storageHandler.mkdirs(pathTask.getParent)
           storageHandler.write(businessTaskAddPartDef, pathTask)
+          storageHandler.write(query, pathTaskSQL)
           val schemaHandler = new SchemaHandler(storageHandler)
           logger.info("Job:SL_BQ_TEST_DS")
           schemaHandler.jobs(true).foreach(it => logger.info(it.toString))
