@@ -154,6 +154,14 @@ trait TestHelper
     FileToImport(
       "sample.py.j2",
       "/templates/dags/sample.py.j2"
+    ),
+    FileToImport(
+      "tsample.sl.yml",
+      "/dag/tsample.sl.yml"
+    ),
+    FileToImport(
+      "tsample.py.j2",
+      "/templates/dags/tsample.py.j2"
     )
   )
 

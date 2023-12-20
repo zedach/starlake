@@ -90,5 +90,26 @@ class Yml2DagGenerateCommandSpec extends TestHelper {
         dagContent should include("'final_name':'position'")
       }
     }
+
+    "dag generation with tags" should "should produce expected file with custom template" in {
+      new SpecTrait(
+        sourceDomainOrJobPathname = "/sample/position/position_with_tags.sl.yml",
+        datasetDomainName = "position",
+        sourceDatasetPathName = "/sample/position/XPOSTBL",
+        jobFilename = Some("position_with_tags.sl.yml")
+      ) {
+        cleanMetadata
+        cleanDatasets
+        val schemaHandler = new SchemaHandler(settings.storageHandler())
+        new DagGenerateCommand(schemaHandler).run(Array("--tasks", "--tags", "tag1"))
+        val dagPath = new Path(new Path(DatasetArea.dags, "generated/transform"), "tposition.py")
+        settings.storageHandler().exists(dagPath) shouldBe true
+        val dagContent = settings.storageHandler().read(dagPath)
+        dagContent should include("description='This is a comment'")
+        dagContent should include("'SL_OPTION1':'value1'")
+        dagContent should include("'name':'domain1'")
+        dagContent should include("'table2'")
+      }
+    }
   }
 }

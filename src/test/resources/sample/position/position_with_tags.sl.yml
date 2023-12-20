@@ -1,0 +1,13 @@
+---
+transform:
+  name: "position_with_tags"
+  metadata:
+    dagRef: "tsample"
+  tasks:
+    - sql: "select * from position.account"
+      domain: "position"
+      dataset: "account2"
+      write: "OVERWRITE"
+      tags:
+        - "tag1"
+        - "tag2"
