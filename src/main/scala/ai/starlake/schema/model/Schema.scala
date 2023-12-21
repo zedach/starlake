@@ -573,7 +573,7 @@ case class Schema(
     * @return
     *   query
     */
-  def buildSqlSelect(
+  def buildSqlSelectOnLoad(
     table: String,
     sourceUris: Option[String]
   ): String = {
@@ -629,7 +629,7 @@ case class Schema(
        |""".stripMargin
   }
 
-  def buildSqlMerge(
+  def buildSqlMergeOnLoad(
     sourceTable: String,
     targetTable: String,
     targetTableFilters: List[String],
@@ -665,12 +665,12 @@ case class Schema(
       }
       val inputData =
         if (merge.map(_.key.isEmpty).getOrElse(true))
-          buildSqlSelect(
+          buildSqlSelectOnLoad(
             sourceTable,
             sourceUris
           ) // partition overwrite without deduplication
         else
-          buildSqlMerge(
+          buildSqlMergeOnLoad(
             sourceTable,
             targetTable,
             targetTableFilters,
@@ -687,7 +687,7 @@ case class Schema(
          |WHEN NOT MATCHED $joinAdditionalClauseSQL THEN INSERT $notMatchedInsertSql
          |""".stripMargin
     } else {
-      val inputData = buildSqlSelect(sourceTable, sourceUris)
+      val inputData = buildSqlSelectOnLoad(sourceTable, sourceUris)
       val allAttributesSQL = allOutputAttributes
         .map { attribute =>
           s"`${attribute.getFinalName()}`"
@@ -723,7 +723,11 @@ case class Schema(
               |  $whereClauseSQL
               |),
               |SL_VIEW_WITH_ROWNUM AS (SELECT $allAttributesSQL, $rowSelectionSQL FROM SL_VIEW_EX)
-              |SELECT $allAttributesSQL FROM SL_VIEW_WITH_ROWNUM WHERE SL_SEQ = 1
+              |
+              |MERGE INTO $targetTable $SL_TARGET_TABLE USING (SELECT $allAttributesSQL FROM SL_VIEW_WITH_ROWNUM WHERE SL_SEQ = 1) ON FALSE
+              |WHEN NOT MATCHED BY SOURCE THEN DELETE
+              |WHEN NOT MATCHED THEN INSERT
+              |
               |""".stripMargin
           } else {
             s"""

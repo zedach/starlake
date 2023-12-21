@@ -362,8 +362,7 @@ trait IngestionJob extends SparkJob {
                           applyJdbcSecondStep(
                             firstStepTempTable,
                             schema,
-                            targetTableExists,
-                            hasMergeKey
+                            targetTableExists
                           )
                         secondStepResult
 
@@ -403,38 +402,23 @@ trait IngestionJob extends SparkJob {
   private def applyJdbcSecondStep(
     firstStepTempTableName: String,
     starlakeSchema: Schema,
-    targetTableExists: Boolean,
-    hasMergeKey: Boolean
+    targetTableExists: Boolean
   ): Try[JobResult] = {
     applyJdbcSecondStepSQL(
       firstStepTempTableName,
       starlakeSchema,
-      targetTableExists,
-      hasMergeKey
+      targetTableExists
     )
   }
 
   def applyJdbcSecondStepSQL(
     firstStepTempTableName: String,
     starlakeSchema: Schema,
-    targetTableExists: Boolean,
-    hasMergeKey: Boolean
+    targetTableExists: Boolean
   ): Try[JobResult] = {
-    val engineName = mergedMetadata.getSink().getConnection().getJdbcEngineName()
     val fullTableName = s"${domain.finalName}.${schema.finalName}"
-    val (presql, postsql, outputTableName, fullOutputTableName) =
-      if (engineName.toString.toLowerCase() == "postgresql" && targetTableExists && hasMergeKey) {
-        val presql = List(s"ALTER TABLE $fullTableName RENAME TO SL_${schema.finalName}")
-        val postsql = List(
-          s"DROP TABLE ${domain.finalName}.SL_${schema.finalName}"
-        )
-        val outputTableName = s"SL_${schema.finalName}"
-        val fullOutputTableName = s"${domain.finalName}.${outputTableName}"
-
-        (presql, postsql, outputTableName, fullOutputTableName)
-      } else {
-        (Nil, Nil, schema.finalName, fullTableName)
-      }
+    val (outputTableName, fullOutputTableName) =
+      (schema.finalName, fullTableName)
 
     val tempTable = firstStepTempTableName
     val targetTable = fullOutputTableName
@@ -453,8 +437,7 @@ trait IngestionJob extends SparkJob {
       case None =>
         handleJdbcNativeNoMergeCases(
           starlakeSchema,
-          tempTable,
-          targetTableExists
+          tempTable
         )
     }
     sqlMerge match {
@@ -462,8 +445,6 @@ trait IngestionJob extends SparkJob {
         logger.info(s"buildSqlSelect: $sqlMerge")
         val taskDesc = AutoTaskDesc(
           name = targetTable,
-          presql = presql,
-          postsql = postsql,
           sql = Some(sqlMerge),
           database = schemaHandler.getDatabase(domain),
           domain = domain.finalName,
@@ -495,7 +476,7 @@ trait IngestionJob extends SparkJob {
   ): Try[String] = {
     Success(
       starlakeSchema
-        .buildSqlMerge(
+        .buildSqlMergeOnLoad(
           tempTable,
           targetTable,
           Nil,
@@ -511,10 +492,9 @@ trait IngestionJob extends SparkJob {
 
   private def handleJdbcNativeNoMergeCases(
     schema: Schema,
-    tempTable: String,
-    targetTableExists: Boolean
+    tempTable: String
   ): Try[String] = {
-    Success(schema.buildSqlSelect(tempTable, None).replace('`', ' '))
+    Success(schema.buildSqlSelectOnLoad(tempTable, None).replace('`', ' '))
   }
 
   private def requireTwoSteps(schema: Schema, sink: JdbcSink): Boolean = {
@@ -877,7 +857,7 @@ trait IngestionJob extends SparkJob {
       bigqueryJob.cliConfig.outputPartition
     ) match {
       case (true, Some(partitionName)) =>
-        val sql = schema.buildSqlSelect(tempTable, Some(sourceUris))
+        val sql = schema.buildSqlSelectOnLoad(tempTable, Some(sourceUris))
         computePartitions(bigqueryJob, partitionName, sql) match {
           case (_, nullCountValues) if nullCountValues > 0 && settings.appConfig.rejectAllOnError =>
             logger.error("Null value found in partition")
@@ -893,7 +873,7 @@ trait IngestionJob extends SparkJob {
             ) mkString (f"date(`$partitionName`) IN (", ",", ")")
             Success(
               Some(
-                schema.buildSqlMerge(
+                schema.buildSqlMergeOnLoad(
                   tempTable,
                   targetTable,
                   Nil,
@@ -908,7 +888,7 @@ trait IngestionJob extends SparkJob {
               nullCountValues
             )
         }
-      case _ => Success(Some(schema.buildSqlSelect(tempTable, Some(sourceUris))), true, 0)
+      case _ => Success(Some(schema.buildSqlSelectOnLoad(tempTable, Some(sourceUris))), true, 0)
     }
   }
 
@@ -979,7 +959,7 @@ trait IngestionJob extends SparkJob {
       bigqueryJob.cliConfig.outputPartition
     ) match {
       case (true, "WRITE_TRUNCATE", Some(partitionName)) =>
-        val sql = starlakeSchema.buildSqlMerge(
+        val sql = starlakeSchema.buildSqlMergeOnLoad(
           tempTable,
           targetTable,
           targetFilters,
@@ -1004,7 +984,7 @@ trait IngestionJob extends SparkJob {
             ) mkString (f"date(`$partitionName`) IN (", ",", ")")
             Success(
               Some(
-                starlakeSchema.buildSqlMerge(
+                starlakeSchema.buildSqlMergeOnLoad(
                   tempTable,
                   targetTable,
                   targetFilters,
@@ -1022,7 +1002,7 @@ trait IngestionJob extends SparkJob {
       case _ =>
         Success(
           Some(
-            starlakeSchema.buildSqlMerge(
+            starlakeSchema.buildSqlMergeOnLoad(
               tempTable,
               targetTable,
               targetFilters,
