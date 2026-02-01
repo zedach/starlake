@@ -15,7 +15,7 @@ object Versions {
   val log4s = "1.3.3"
   val swaggerParser = "2.1.36"
   val betterFiles = "3.9.2"
-  val jacksonForSpark3 = "2.15.2"
+  val jacksonForSpark3 = "2.15.4"
   val pureConfig = "0.17.9"
   val esSpark = "8.16.3"
   // starting 1.4.1, it uses 2.17.0 of jackson which is not compatible with provided version in spark
