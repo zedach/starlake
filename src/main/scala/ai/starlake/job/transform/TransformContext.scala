@@ -265,7 +265,11 @@ object TransformContext {
       dryRun = context.dryRun,
       scheduledDate = context.scheduledDate,
       syncSchema = context.syncSchema
-    )(context.settings, context.storageHandler, context.schemaHandler)
+    )(
+      context.settings,
+      context.storageHandler,
+      context.schemaHandler
+    )
   }
 
   /** Creates a JdbcAutoTask from a TransformContext.
@@ -298,7 +302,11 @@ object TransformContext {
       conn = conn,
       scheduledDate = context.scheduledDate,
       syncSchema = context.syncSchema
-    )(context.settings, context.storageHandler, context.schemaHandler)
+    )(
+      context.settings,
+      context.storageHandler,
+      context.schemaHandler
+    )
   }
 
   /** Creates a SparkAutoTask from a TransformContext.
@@ -332,7 +340,11 @@ object TransformContext {
       schema = schema,
       scheduledDate = context.scheduledDate,
       syncSchema = context.syncSchema
-    )(context.settings, context.storageHandler, context.schemaHandler)
+    )(
+      context.settings,
+      context.storageHandler,
+      context.schemaHandler
+    )
   }
 
   /** Creates a SparkExportTask from a TransformContext.
@@ -358,7 +370,11 @@ object TransformContext {
       resultPageSize = context.resultPageSize,
       resultPageNumber = context.resultPageNumber,
       scheduledDate = context.scheduledDate
-    )(context.settings, context.storageHandler, context.schemaHandler)
+    )(
+      context.settings,
+      context.storageHandler,
+      context.schemaHandler
+    )
   }
 
   /** Creates an AutoTask of the appropriate type based on the engine.
