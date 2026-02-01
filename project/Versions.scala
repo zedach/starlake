@@ -19,7 +19,7 @@ object Versions {
   val pureConfig = "0.17.9"
   val esSpark = "8.16.3"
   // starting 1.4.1, it uses 2.17.0 of jackson which is not compatible with provided version in spark
-  val jsonSchemaValidator = "1.4.0"
+  val jsonSchemaValidator = "1.4.3"
   val scopt = "4.1.0"
   val bigquery = "2.49.0"
   // val gcsConnector = "3.0.4"
