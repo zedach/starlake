@@ -474,6 +474,8 @@ class HdfsStorageHandler(fileSystem: String)(implicit
     *   destination path (file or folder)
     * @return
     */
+  private val objectStorageSchemes = Set("s3", "s3a", "s3n", "gs")
+
   def move(src: Path, dst: Path): Boolean = {
     pathSecurityCheck(src)
     val destFS = fs(dst)
@@ -483,7 +485,16 @@ class HdfsStorageHandler(fileSystem: String)(implicit
     if (sourceURI.getScheme == destURI.getScheme && sourceURI.getHost == destURI.getHost) {
       delete(dst)
       mkdirs(dst.getParent)
-      sourceFS.rename(src, dst)
+      val scheme = Option(sourceURI.getScheme).getOrElse("")
+      if (objectStorageSchemes.contains(scheme)) {
+        // For object storage, use copy+delete instead of rename.
+        // Hadoop S3A rename() has compatibility issues with non-AWS S3 backends
+        // (e.g. SeaweedFS, MinIO) where HEAD on directory paths returns 200
+        // instead of 404, causing S3A to misidentify directories as files.
+        FileUtil.copy(sourceFS, src, destFS, dst, true, conf)
+      } else {
+        sourceFS.rename(src, dst)
+      }
     } else {
       delete(dst)
       dst.getParent.toString.split("://") match {

@@ -73,6 +73,45 @@ class StorageHandlerSpec extends TestHelper {
     })
   }
 
+  def testMoveFile(storageHandler: StorageHandler): Unit = {
+    val srcDir = starlakeTestRoot + "/move_src"
+    val dstDir = starlakeTestRoot + "/move_dst"
+    BetterFile(srcDir).createDirectories()
+    val srcFile = BetterFile(srcDir + "/test_move.txt")
+    srcFile.write("move test content")
+    val srcPath = new Path(srcDir + "/test_move.txt")
+    val dstPath = new Path(dstDir + "/test_move.txt")
+    storageHandler.move(srcPath, dstPath) shouldBe true
+    storageHandler.exists(dstPath) shouldBe true
+    storageHandler.exists(srcPath) shouldBe false
+    storageHandler.read(dstPath) shouldBe "move test content"
+  }
+
+  def testMoveFileOverwrite(storageHandler: StorageHandler): Unit = {
+    val srcDir = starlakeTestRoot + "/move_overwrite_src"
+    val dstDir = starlakeTestRoot + "/move_overwrite_dst"
+    BetterFile(srcDir).createDirectories()
+    BetterFile(dstDir).createDirectories()
+    BetterFile(srcDir + "/overwrite.txt").write("new content")
+    BetterFile(dstDir + "/overwrite.txt").write("old content")
+    val srcPath = new Path(srcDir + "/overwrite.txt")
+    val dstPath = new Path(dstDir + "/overwrite.txt")
+    storageHandler.move(srcPath, dstPath) shouldBe true
+    storageHandler.exists(srcPath) shouldBe false
+    storageHandler.read(dstPath) shouldBe "new content"
+  }
+
+  def testMoveCreatesParentDirs(storageHandler: StorageHandler): Unit = {
+    val srcDir = starlakeTestRoot + "/move_parent_src"
+    BetterFile(srcDir).createDirectories()
+    BetterFile(srcDir + "/nested.txt").write("nested content")
+    val srcPath = new Path(srcDir + "/nested.txt")
+    val dstPath = new Path(starlakeTestRoot + "/move_parent_dst/sub/dir/nested.txt")
+    storageHandler.move(srcPath, dstPath) shouldBe true
+    storageHandler.exists(dstPath) shouldBe true
+    storageHandler.exists(srcPath) shouldBe false
+  }
+
   new WithSettings(localStorageSettings) {
     "LocalStorageHandler" should "stat file" in {
       testStatFile(storageHandler)
@@ -80,6 +119,18 @@ class StorageHandlerSpec extends TestHelper {
 
     it should "list file" in {
       testListFile(storageHandler)
+    }
+
+    it should "move file to new directory" in {
+      testMoveFile(storageHandler)
+    }
+
+    it should "move file overwriting existing" in {
+      testMoveFileOverwrite(storageHandler)
+    }
+
+    it should "move file creating parent directories" in {
+      testMoveCreatesParentDirs(storageHandler)
     }
   }
 
@@ -90,6 +141,18 @@ class StorageHandlerSpec extends TestHelper {
 
     it should "list file" in {
       testListFile(storageHandler)
+    }
+
+    it should "move file to new directory" in {
+      testMoveFile(storageHandler)
+    }
+
+    it should "move file overwriting existing" in {
+      testMoveFileOverwrite(storageHandler)
+    }
+
+    it should "move file creating parent directories" in {
+      testMoveCreatesParentDirs(storageHandler)
     }
 
     "Domain Case Class" should "be written as yaml and read correctly" in {
