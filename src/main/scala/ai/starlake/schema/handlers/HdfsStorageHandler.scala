@@ -428,6 +428,10 @@ class HdfsStorageHandler(fileSystem: String)(implicit
           }
           .toList
           .filterNot(_.getPath.getName.startsWith(".")) // ignore all control files
+          .filterNot(_.isDirectory) // ignore directories
+          .filterNot(s =>
+            s.getLen == 0 && s.getPath.toUri.getPath == path.toUri.getPath
+          ) // ignore S3 directory markers (zero-byte objects matching listing path)
         logger.info(s"Found ${files.size} files")
         val sorted =
           if (sortByName)
